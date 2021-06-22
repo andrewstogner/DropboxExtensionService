@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<appsettings>
+  <Group1>
+    <path>C:\Users\digge\Saved Games\Pokemon Rejuvenation</path>
+    <filename>^Game(|_/d{1,}).rxdata$</filename>
+    <foldername>Pokemon Rejuvenation</foldername>
+  </Group1>
+  <Group1>
+    <path>C:\Users\digge\Saved Games\Pokemon Reborn</path>
+    <filename>^Game(|_/d{1,}).rxdata$</filename>
+    <folder>Pokemon Reborn</folder>
+  </Group1>
+</appsettings>

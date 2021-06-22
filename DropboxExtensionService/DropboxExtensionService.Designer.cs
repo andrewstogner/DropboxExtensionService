@@ -1,7 +1,7 @@
 ﻿
 namespace DropboxExtensionService
 {
-    partial class Service1
+    partial class DropboxExtensionService
     {
         /// <summary> 
         /// Required designer variable.
@@ -30,7 +30,7 @@ namespace DropboxExtensionService
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            this.ServiceName = "Service1";
+            this.ServiceName = "Dropbox Extension Service";
         }
 
         #endregion

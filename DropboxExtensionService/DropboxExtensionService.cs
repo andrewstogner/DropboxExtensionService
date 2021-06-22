@@ -10,19 +10,21 @@ using System.Threading.Tasks;
 
 namespace DropboxExtensionService
 {
-    public partial class Service1 : ServiceBase
+    public partial class DropboxExtensionService : ServiceBase
     {
-        public Service1()
+        public DropboxExtensionService()
         {
             InitializeComponent();
         }
 
         protected override void OnStart(string[] args)
         {
+
         }
 
         protected override void OnStop()
         {
+
         }
     }
 }

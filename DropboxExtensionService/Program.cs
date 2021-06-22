@@ -5,10 +5,13 @@ using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 
+using System.Text.RegularExpressions;
+
 namespace DropboxExtensionService
 {
     static class Program
     {
+        #region Main Function
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -17,9 +20,10 @@ namespace DropboxExtensionService
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
             {
-                new Service1()
+                new DropboxExtensionService()
             };
             ServiceBase.Run(ServicesToRun);
         }
+        #endregion
     }
 }
