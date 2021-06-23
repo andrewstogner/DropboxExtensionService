@@ -8,6 +8,7 @@ namespace DropboxExtensionService
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
+        #region Dispose Mwthod
         /// <summary>
         /// Clean up any resources being used.
         /// </summary>
@@ -20,9 +21,9 @@ namespace DropboxExtensionService
             }
             base.Dispose(disposing);
         }
+        #endregion
 
         #region Component Designer generated code
-
         /// <summary> 
         /// Required method for Designer support - do not modify 
         /// the contents of this method with the code editor.
@@ -32,7 +33,6 @@ namespace DropboxExtensionService
             components = new System.ComponentModel.Container();
             this.ServiceName = "Dropbox Extension Service";
         }
-
         #endregion
     }
 }
