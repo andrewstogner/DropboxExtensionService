@@ -8,7 +8,7 @@ namespace DropboxExtensionService
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        #region Dispose Mwthod
+        #region Dispose Method
         /// <summary>
         /// Clean up any resources being used.
         /// </summary>

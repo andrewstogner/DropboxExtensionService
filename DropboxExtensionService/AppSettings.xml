@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <appsettings>
   <groups>
-    <group path="C:\Users\digge\Saved Games\Pokemon Rejuvenation" filename="^Game(|_/d{1,}).rxdata$" newfolder="Pokemon Rejuvenation"/>
-    <group path="C:\Users\digge\Saved Games\Pokemon Reborn" filename="^Game(|_/d{1,}).rxdata$" newfolder="Pokemon Reborn"/>
+    <group path="Saved Games\Pokemon Rejuvenation" filename="^Game(|_/d{1,}).rxdata$" newfolder="Pokemon Rejuvenation"/>
+    <group path="Saved Games\Pokemon Reborn" filename="^Game(|_/d{1,}).rxdata$" newfolder="Pokemon Reborn"/>
   </groups>
 </appsettings>
