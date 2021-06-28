@@ -15,7 +15,7 @@ namespace DropboxExtensionService
 {
     public partial class DropboxExtensionService : ServiceBase
     {
-        #region Custom Structures and Constant Variables
+        #region Custom Structures, Constant, And Static Variables
         /// <summary>
         /// Custom structure thats meant for collecting data from the AppSettings.exml file
         /// </summary>
@@ -31,11 +31,16 @@ namespace DropboxExtensionService
             public string Path; //{ get; }
             public string Filename; //{ get; }
             public string NewFolder; //{ get; }
+            public bool Exists;
         }
+
+        //Static variables for file watchers
+        static List<group> groups;
+        static List<FileSystemWatcher> fileWatchers = null; 
 
         //The location of the file that has the information on the dropbox folder 
         const string dropboxInfoPath = @"Dropbox\info.json";
-        string dropboxPath = "";
+        static string dropboxPath = "";
         #endregion
 
         #region Test Method (for debugging)
@@ -129,59 +134,127 @@ namespace DropboxExtensionService
             }
             catch (Exception e)
             {
-                if (File.Exists("errorlog.txt"))
-                {
-                    using (StreamWriter sw = new StreamWriter("errorlog.txt")) {
-                        sw.WriteLine(DateTime.Now + ":");
-                        sw.WriteLine("Problem acessing the AppSettings.xml file with this message below. Make sure it is in the same directory as the executable.");
-                        sw.WriteLine(e.Message);
-                    }
-
-                    System.Environment.Exit(0);
-                }
-                else
+                if (!(File.Exists("errorlog.txt")))
                 {
                     File.Create("errorlog.txt");
-                    using (StreamWriter sw = new StreamWriter("errorlog.txt"))
-                    {
-                        sw.WriteLine(DateTime.Now + ":");
-                        sw.WriteLine("Problem acessing the AppSettings.xml file with this message below. Make sure it is in the same directory as the executable.");
-                        sw.WriteLine(e.Message);
-                    }
-
-                    System.Environment.Exit(0);
                 }
+
+                using (StreamWriter sw = new StreamWriter("errorlog.txt"))
+                {
+                    sw.WriteLine(DateTime.Now + ": ");
+                    sw.WriteLine("Problem acessing the AppSettings.xml file with this message below. Make sure it is in the same directory as the executable.");
+                    sw.WriteLine(e.Message);
+                }
+
+                System.Environment.Exit(0);
             }
             
-            var groups = doc.Root.Elements("group").Select(x => new group
+            groups = doc.Root.Elements("group").Select(x => new group
                   {
                       Path = (string)(profilePath + "\\" + x.Attribute("path")),
                       Filename = (string)x.Attribute("filename"),
-                      NewFolder = (string)(dropboxPath + "\\" + x.Attribute("newfolder"))
+                      NewFolder = (string)(dropboxPath + "\\Games\\" + x.Attribute("newfolder")),
+                      Exists = Directory.Exists((string)(profilePath + "\\" + x.Attribute("path"))) ? true : false
                   }).ToList();
             #endregion
 
             #region Create Dropbox Folders & See If The Current Data Is Up To Date
             //Creating the new folders in dropbox for the files if they don't exist
             //Will check the files to see if the most up to date version is already in the dropbox folders (will do this be looking at the modified metadata date)
+            if (!(Directory.Exists(dropboxPath + "\\Games")))
+            {
+                Directory.CreateDirectory(dropboxPath + "\\Games");
+            }
+
             foreach (var entry in groups)
             {
-                if (!(Directory.Exists(entry.NewFolder)))
+                if (entry.Exists)
                 {
-                    //Create directory and move the data into it
-                    Directory.CreateDirectory(entry.NewFolder);
+                    //Loop through files for the files we want
+                    string[] files = Directory.GetFiles(entry.Path);
+                    Regex reg = new Regex(entry.Filename);
+
+                    foreach (string file in files)
+                    {
+                        Match match = reg.Match(file);
+                        if (match.Success)
+                        {
+                            if (!(Directory.Exists(entry.NewFolder)))
+                            {
+                                //Create directory if it doesnt exist
+                                Directory.CreateDirectory(entry.NewFolder);
+                            }
+
+                            //Move data into folder if its a new version
+                            if (!(File.Exists(Path.Combine(entry.NewFolder, entry.Filename))))
+                            {
+                                File.Copy(Path.Combine(entry.Path, entry.Filename), Path.Combine(entry.NewFolder, entry.Filename), true);
+                            }
+                            else
+                            {
+                                if (File.GetLastWriteTime(Path.Combine(entry.NewFolder, entry.Filename)) < File.GetLastWriteTime(Path.Combine(entry.Path, entry.Filename)))
+                                {
+                                    File.Copy(Path.Combine(entry.Path, entry.Filename), Path.Combine(entry.NewFolder, entry.Filename), true);
+                                }
+                            }
+                        }
+                    }
                 }
                 else
                 {
-                    //Check the data to see if it is up to date
+                    //This is the case that one of the path files doesn't exist
+                    //Either way though we'll let the program continue so the paths that do work can get watchers
+                    //And we'll just log that it doesn't exist
+                    if (!(File.Exists("errorlog.txt")))
+                    {
+                        File.Create("errorlog.txt");
+                    }
+
+                    using (StreamWriter sw = new StreamWriter("errorlog.txt"))
+                    {
+                        sw.WriteLine(DateTime.Now + ": ");
+                        sw.WriteLine("Problem with the provided path:" + entry.Path);
+                    }
+
+                    System.Environment.Exit(0);
 
                 }
             }
             #endregion
 
             #region Setup File Watchers
-            //Setting up different threads to watch each file
+            //Setting up the filewatchers
+            int i = 0;
+            foreach (var entry in groups)
+            {
+                if(entry.Exists)
+                {
+                    fileWatchers[i] = new FileSystemWatcher();
+                    fileWatchers[i].Path = entry.Path;
+                    fileWatchers[i].IncludeSubdirectories = false;
+                    fileWatchers[i].Created += new FileSystemEventHandler(Watcher_Event);
+                    fileWatchers[i].EnableRaisingEvents = true;
 
+                    i++;
+                }
+            }
+
+            //Check if any file watchers were made
+            if (fileWatchers.Equals(null))
+            {
+                if (!(File.Exists("errorlog.txt")))
+                {
+                    File.Create("errorlog.txt");
+                }
+
+                using (StreamWriter sw = new StreamWriter("errorlog.txt"))
+                {
+                    sw.WriteLine(DateTime.Now + ": ");
+                    sw.WriteLine("No file watchers were made.");
+                }
+
+                System.Environment.Exit(0);
+            }
             #endregion
 
         }
@@ -193,6 +266,76 @@ namespace DropboxExtensionService
         /// </summary>
         protected override void OnStop()
         {
+            foreach (var fileWatcher in fileWatchers)
+            {
+                fileWatcher.EnableRaisingEvents = false;
+                fileWatcher.Dispose();
+            }
+        }
+        #endregion
+
+        #region Watcher Event
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="arg"></param>
+        private static void Watcher_Event(object sender, FileSystemEventArgs arg)
+        {
+            //Variables
+            string sourcePath = "";
+            string destPath = "";
+            string file = "";
+
+            //first need to know what file watcher executed
+            foreach (var entry in groups)
+            {
+                if (arg.FullPath.Equals(entry.Path + "\\" + arg.Name))
+                {
+                    sourcePath = entry.Path;
+                    destPath = entry.NewFolder;
+                    file = entry.Filename;
+                    break;
+                }
+            }
+
+            //Check if a match was found
+            if (sourcePath.Equals(""))
+            {
+                if (!(File.Exists("errorlog.txt")))
+                {
+                    File.Create("errorlog.txt");
+                }
+
+                using (StreamWriter sw = new StreamWriter("errorlog.txt"))
+                {
+                    sw.WriteLine(DateTime.Now + ": ");
+                    sw.WriteLine("Unable to find a match for path - " + arg.FullPath);
+                }
+            }
+            else
+            {
+                //Check if it is a valid file
+                Regex reg = new Regex(file);
+                Match match = reg.Match(arg.Name);
+
+                if (match.Success)
+                {
+                    //Check that the new directory exist
+                    if (!Directory.Exists(dropboxPath + "\\Games"))
+                    {
+                        Directory.CreateDirectory(dropboxPath + "\\Games");
+                    }
+
+                    if (!Directory.Exists(destPath))
+                    {
+                        Directory.CreateDirectory(destPath);
+                    }
+
+                    //Copy new file over
+                    File.Copy(arg.FullPath, Path.Combine(destPath, arg.Name), true);
+                }
+            }
 
         }
         #endregion
