@@ -36,7 +36,7 @@ namespace DropboxExtensionService
 
         //Static variables for file watchers
         static List<group> groups;
-        static List<FileSystemWatcher> fileWatchers = null; 
+        static List<FileSystemWatcher> fileWatchers = new List<FileSystemWatcher>(); 
 
         //The location of the file that has the information on the dropbox folder 
         const string dropboxInfoPath = @"Dropbox\info.json";
@@ -148,15 +148,24 @@ namespace DropboxExtensionService
 
                 System.Environment.Exit(0);
             }
-            
-            groups = doc.Root.Elements("group").Select(x => new group
+
+            /*groups = doc.Root.Elements("group").Select(x => new group
                   {
                       Path = (string)(profilePath + "\\" + x.Attribute("path")),
                       Filename = (string)x.Attribute("filename"),
                       NewFolder = (string)(dropboxPath + "\\Games\\" + x.Attribute("newfolder")),
                       Exists = Directory.Exists((string)(profilePath + "\\" + x.Attribute("path"))) ? true : false
-                  }).ToList();
+                  }).ToList();*/
+
+            groups = doc.Root.Descendants("group").Select(x => new group
+            {
+                Path = (string)(profilePath + "\\" + x.Attribute("path").Value),
+                Filename = (string)x.Attribute("filename").Value,
+                NewFolder = (string)(dropboxPath + "\\Games\\" + x.Attribute("newfolder").Value),
+                Exists = Directory.Exists((string)(profilePath + "\\" + x.Attribute("path").Value)) ? true : false
+            }).ToList();
             #endregion
+
 
             #region Create Dropbox Folders & See If The Current Data Is Up To Date
             //Creating the new folders in dropbox for the files if they don't exist
@@ -176,7 +185,7 @@ namespace DropboxExtensionService
 
                     foreach (string file in files)
                     {
-                        Match match = reg.Match(file);
+                        Match match = reg.Match(Path.GetFileName(file));
                         if (match.Success)
                         {
                             if (!(Directory.Exists(entry.NewFolder)))
@@ -186,15 +195,15 @@ namespace DropboxExtensionService
                             }
 
                             //Move data into folder if its a new version
-                            if (!(File.Exists(Path.Combine(entry.NewFolder, entry.Filename))))
+                            if (!(File.Exists(Path.Combine(entry.NewFolder, Path.GetFileName(file)))))
                             {
-                                File.Copy(Path.Combine(entry.Path, entry.Filename), Path.Combine(entry.NewFolder, entry.Filename), true);
+                                File.Copy(file, Path.Combine(entry.NewFolder, Path.GetFileName(file)), true);
                             }
                             else
                             {
-                                if (File.GetLastWriteTime(Path.Combine(entry.NewFolder, entry.Filename)) < File.GetLastWriteTime(Path.Combine(entry.Path, entry.Filename)))
+                                if (File.GetLastWriteTime(Path.Combine(entry.NewFolder, Path.GetFileName(file))) < File.GetLastWriteTime(file))
                                 {
-                                    File.Copy(Path.Combine(entry.Path, entry.Filename), Path.Combine(entry.NewFolder, entry.Filename), true);
+                                    File.Copy(file, Path.Combine(entry.NewFolder, Path.GetFileName(file)), true);
                                 }
                             }
                         }
@@ -229,7 +238,8 @@ namespace DropboxExtensionService
             {
                 if(entry.Exists)
                 {
-                    fileWatchers[i] = new FileSystemWatcher();
+                    fileWatchers.Add(new FileSystemWatcher());
+                    //fileWatchers[i] = new FileSystemWatcher();
                     fileWatchers[i].Path = entry.Path;
                     fileWatchers[i].IncludeSubdirectories = false;
                     fileWatchers[i].Created += new FileSystemEventHandler(Watcher_Event);
@@ -240,7 +250,7 @@ namespace DropboxExtensionService
             }
 
             //Check if any file watchers were made
-            if (fileWatchers.Equals(null))
+            if (fileWatchers.Count.Equals(0))
             {
                 if (!(File.Exists("errorlog.txt")))
                 {
